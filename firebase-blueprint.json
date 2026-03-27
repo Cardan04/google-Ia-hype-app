@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and basic information.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "description": "Full name" },
+        "email": { "type": "string", "description": "Email address" },
+        "walletAddress": { "type": "string", "description": "Optional wallet address" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Event details.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "eventDate": { "type": "string", "format": "date-time" },
+        "category": { "type": "string" },
+        "organizerId": { "type": "string" },
+        "isPremium": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "eventDate", "organizerId"]
+    },
+    "Ticket": {
+      "title": "Ticket",
+      "description": "User participation in an event.",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "userId": { "type": "string" },
+        "status": { "type": "string", "enum": ["valid", "used", "cancelled"] },
+        "price": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["eventId", "userId", "status"]
+    },
+    "HypeScore": {
+      "title": "HypeScore",
+      "description": "User reputation and gamification stats.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "score": { "type": "integer" },
+        "level": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum"] },
+        "totalEvents": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "score", "level"]
+    },
+    "Reward": {
+      "title": "Reward",
+      "description": "Rewards available for users to claim.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "pointsCost": { "type": "integer" },
+        "isClaimed": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "pointsCost"]
+    },
+    "HypeLog": {
+      "title": "HypeLog",
+      "description": "Log of points earned.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "points": { "type": "integer" },
+        "reason": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "points", "reason"]
+    },
+    "AttendanceToken": {
+      "title": "AttendanceToken",
+      "description": "NFT-like attendance token for an event.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "tokenId": { "type": "string", "description": "Simulated NFT Token ID or Hash" },
+        "metadata": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "eventId", "tokenId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/events/{eventId}": {
+      "schema": "Event",
+      "description": "Events list"
+    },
+    "/tickets/{ticketId}": {
+      "schema": "Ticket",
+      "description": "User tickets"
+    },
+    "/hype_scores/{userId}": {
+      "schema": "HypeScore",
+      "description": "User reputation scores"
+    },
+    "/rewards/{rewardId}": {
+      "schema": "Reward",
+      "description": "User rewards"
+    },
+    "/hype_logs/{logId}": {
+      "schema": "HypeLog",
+      "description": "Point earning history"
+    },
+    "/attendance_tokens/{tokenId}": {
+      "schema": "AttendanceToken",
+      "description": "NFT Attendance Tokens"
+    }
+  }
+}

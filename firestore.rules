@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (Auth UID)
+    // Fields:
+    //   - uid: string (required)
+    //   - name: string (required, 1-100 chars)
+    //   - email: string (required, valid email)
+    //   - walletAddress: string (optional)
+    //   - createdAt: string (required, ISO date)
+    //
+    // Collection: events
+    // Document ID: {eventId}
+    // Fields:
+    //   - name: string (required)
+    //   - description: string (required)
+    //   - location: string (required)
+    //   - eventDate: string (required, ISO date)
+    //   - category: string (required)
+    //   - organizerId: string (required)
+    //   - isPremium: bool (required)
+    //   - createdAt: string (required, ISO date)
+    //
+    // Collection: tickets
+    // Document ID: {ticketId}
+    // Fields:
+    //   - eventId: string (required)
+    //   - userId: string (required)
+    //   - status: string (required, valid/used/cancelled)
+    //   - price: number (required)
+    //   - createdAt: string (required, ISO date)
+    //
+    // Collection: hype_scores
+    // Document ID: {userId}
+    // Fields:
+    //   - userId: string (required)
+    //   - score: int (required)
+    //   - level: string (required, Bronze/Silver/Gold/Platinum)
+    //   - totalEvents: int (required)
+    //   - updatedAt: string (required, ISO date)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDate(dateStr) {
+      return dateStr is string && dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             isValidEmail(data.email) &&
+             isValidDate(data.createdAt);
+    }
+
+    function isValidEvent(data) {
+      return data.keys().hasAll(['name', 'description', 'location', 'eventDate', 'category', 'organizerId', 'isPremium', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 &&
+             isValidDate(data.eventDate) &&
+             isValidDate(data.createdAt);
+    }
+
+    function isValidTicket(data) {
+      return data.keys().hasAll(['eventId', 'userId', 'status', 'price', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.status in ['valid', 'used', 'cancelled'] &&
+             data.price is number &&
+             isValidDate(data.createdAt);
+    }
+
+    function isValidHypeScore(data) {
+      return data.keys().hasAll(['userId', 'score', 'level', 'totalEvents', 'updatedAt']) &&
+             data.userId == request.auth.uid &&
+             data.score is int &&
+             data.level in ['Bronze', 'Silver', 'Gold', 'Platinum'] &&
+             isValidDate(data.updatedAt);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    match /events/{eventId} {
+      allow read: if true; // Public events
+      allow create: if isAuthenticated() && isValidEvent(request.resource.data);
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.organizerId) && isValidEvent(request.resource.data);
+    }
+
+    match /tickets/{ticketId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId);
+      allow create: if isAuthenticated() && isValidTicket(request.resource.data);
+      allow update: if isAuthenticated() && (request.auth.uid == resource.data.userId) && isValidTicket(request.resource.data);
+    }
+
+    match /hype_scores/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidHypeScore(request.resource.data);
+      allow update: if isOwner(userId) && isValidHypeScore(request.resource.data);
+    }
+
+    match /rewards/{rewardId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId);
+      allow create: if isAuthenticated(); // System creates rewards
+    }
+
+    match /hype_logs/{logId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId);
+      allow create: if isAuthenticated(); // System creates logs
+    }
+
+    match /attendance_tokens/{tokenId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.userId);
+      allow create: if isAuthenticated(); // System creates tokens
+    }
+  }
+}
